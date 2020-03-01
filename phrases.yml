@@ -1,0 +1,23 @@
+# message when the bot joined conversation
+self_join_message: "&#129302; Всем привет!
+  Я бот, который будет защищать вашу беседу от спам-ботов и неактивов посредством показа им каптчи. Для работы мне нужны права Администратора."
+self_join_attachments: []
+
+# message when user joins the conversation
+user_join_message: "Привет {{user}}, добро пожаловать в беседу!
+  Чтобы удостовериться, что ты не бот, пожалуйста введи текст с данной картинки или прослушай голосовую.
+
+  У тебя есть 2 минуты до кика. Время пошло!"
+
+# message when user solved captcha
+captcha_completed_message: "&#9989; Отлично, теперь @id{{id}} (вам) разрешён доступ к беседе!"
+captcha_completed_attachments: []
+
+# message when user lost all time
+captcha_fail_message: "&#9940; Прости {{user}}, но ты не справился с заданием.
+  Чтобы вернуться, пиши создателю беседы - https://vk.com/id{{admin}}.
+
+  Ну а сейчас давай до свидания!"
+captcha_fail_attachments: ["photo-191145290_457239019"]
+
+messages_left_message: "&#9888; {{user}}, у вас осталось {{messages}} сообщений. Не тратьте их в пустую! Решите каптчу и будете свободны в общении."

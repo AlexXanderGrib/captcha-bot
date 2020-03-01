@@ -1,0 +1,88 @@
+{
+  "name": "captcha-bot",
+  "version": "1.0.0",
+  "description": "Bot defending chats in VK using text on images",
+  "main": "index.js",
+  "scripts": {
+    "start": "NODE_ENV=production nodemon",
+    "dev": "NODE_ENV=development nodemon",
+    "test": "jest",
+    "lint": "eslint ."
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/xxhax-team/captcha-bot.git"
+  },
+  "author": "XXHAX Team <putin@xxhax.com>",
+  "license": "GPL-3.0",
+  "bugs": {
+    "url": "https://github.com/xxhax-team/captcha-bot/issues"
+  },
+  "homepage": "https://github.com/xxhax-team/captcha-bot#readme",
+  "devDependencies": {
+    "@types/mustache": "^4.0.1",
+    "@types/node": "^13.7.7",
+    "@types/yaml": "^1.2.0",
+    "@typescript-eslint/eslint-plugin": "^2.21.0",
+    "@typescript-eslint/parser": "^2.21.0",
+    "eslint": "^6.8.0",
+    "eslint-config-airbnb-base": "^14.0.0",
+    "eslint-config-prettier": "^6.9.0",
+    "eslint-plugin-import": "^2.20.0",
+    "eslint-plugin-prettier": "^3.1.2",
+    "husky": "^4.1.0",
+    "jest": "^24.9.0",
+    "lint-staged": "^10.0.1",
+    "prettier": "^1.19.1"
+  },
+  "dependencies": {
+    "jimp": "^0.9.3",
+    "middleware-io": "^2.5.0",
+    "mustache": "^4.0.0",
+    "nodemon": "^2.0.2",
+    "ts-node": "^8.6.2",
+    "typescript": "^3.8.3",
+    "uuid": "^7.0.1",
+    "vk-io": "^4.0.0-rc.30",
+    "yaml": "^1.7.2",
+    "yandex-speech-promise": "^1.0.0"
+  },
+  "eslintConfig": {
+    "env": {
+      "node": true
+    },
+    "parser": "@typescript-eslint/parser",
+    "extends": [
+      "airbnb-base",
+      "plugin:prettier/recommended",
+      "prettier",
+      "plugin:@typescript-eslint/recommended"
+    ],
+    "plugins": [
+      "prettier",
+      "@typescript-eslint/eslint-plugin"
+    ],
+    "rules": {
+      "semi": "off",
+      "prettier/prettier": "warn",
+      "no-console": "off",
+      "@typescript-eslint/camelcase": "off",
+      "no-restricted-syntax": "off",
+      "no-await-in-loop": "off",
+      "no-continue": "off",
+      "import/no-unresolved": "off",
+      "import/extensions": "off"
+    }
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
+  },
+  "lint-staged": {
+    "*.{js,ts}": [
+      "eslint --fix",
+      "prettier --write"
+    ]
+  }
+}
