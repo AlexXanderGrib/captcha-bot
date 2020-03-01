@@ -47,36 +47,9 @@
     "yaml": "^1.7.2",
     "yandex-speech-promise": "^1.0.0"
   },
-  "eslintConfig": {
-    "env": {
-      "node": true
-    },
-    "parser": "@typescript-eslint/parser",
-    "extends": [
-      "airbnb-base",
-      "plugin:prettier/recommended",
-      "prettier",
-      "plugin:@typescript-eslint/recommended"
-    ],
-    "plugins": [
-      "prettier",
-      "@typescript-eslint/eslint-plugin"
-    ],
-    "rules": {
-      "semi": "off",
-      "prettier/prettier": "warn",
-      "no-console": "off",
-      "@typescript-eslint/camelcase": "off",
-      "no-restricted-syntax": "off",
-      "no-await-in-loop": "off",
-      "no-continue": "off",
-      "import/no-unresolved": "off",
-      "import/extensions": "off"
-    }
-  },
   "husky": {
     "hooks": {
-      "pre-commit": "echo 1 > /dev/null"
+      "pre-commit": "lint-staged"
     }
   },
   "lint-staged": {
@@ -84,5 +57,12 @@
       "eslint --fix",
       "prettier --write"
     ]
-  }
+  },
+  "files": [
+    "src/**/*",
+    "config/*",
+    "@types/*",
+    "nodemon.json",
+    "tsconfig.json"
+  ]
 }

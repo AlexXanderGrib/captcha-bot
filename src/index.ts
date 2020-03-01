@@ -1,4 +1,4 @@
-import VK, { MessageContext } from "vk-io";
+import { MessageContext, VK } from "vk-io";
 import { Middleware } from "middleware-io";
 import load from "./configLoader";
 import store, { CaptchaStorage } from "./store";
