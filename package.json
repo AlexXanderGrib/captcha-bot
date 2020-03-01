@@ -42,10 +42,9 @@
     "nodemon": "^2.0.2",
     "ts-node": "^8.6.2",
     "typescript": "^3.8.3",
-    "uuid": "^7.0.1",
     "vk-io": "^4.0.0-rc.30",
     "yaml": "^1.7.2",
-    "yandex-speech-promise": "^1.0.0"
+    "yandex-speech-promise": "latest"
   },
   "husky": {
     "hooks": {

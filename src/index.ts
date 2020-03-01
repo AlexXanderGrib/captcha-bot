@@ -43,10 +43,10 @@ async function main(
 
   switch (process.env.NODE_ENV) {
     case "development":
-      await vk.updates.startWebhook({ host, port, path });
+      await vk.updates.startPolling();
       break;
     case "production":
-      await vk.updates.startPolling();
+      await vk.updates.startWebhook({ host, port, path });
       break;
     default:
       throw new Error("Environment not selected");
