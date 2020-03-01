@@ -38,23 +38,40 @@ export default async function onUserJoin(
           user_ids: String(victim)
         });
 
-        const image = await text2image(code);
+        const attachment: string[] = [];
+        try {
+          const image = await text2image(code);
 
-        const imageInVK = await context.vk.upload.messagePhoto({
-          peer_id: context.peerId,
-          source: image
-        });
+          const imageInVK = await context.vk.upload.messagePhoto({
+            peer_id: context.peerId,
+            source: image
+          });
 
-        const audio = await text2speech(`Код: ${code.split("").join(" ")}`, {
-          auth,
-          voice: "jane",
-          speed: 0.8
-        });
+          attachment.push(
+            `photo${imageInVK.ownerId}_${imageInVK.id}_${imageInVK.accessKey}`
+          );
+        } catch (e) {
+          console.error("Unable to upload photo for XID: ", xid, e);
+        }
 
-        const audioInVK = await context.vk.upload.audioMessage({
-          source: audio,
-          peer_id: context.peerId
-        });
+        try {
+          const audio = await text2speech(`Код: ${code.split("").join(" ")}`, {
+            auth,
+            voice: "zahar",
+            speed: 0.8
+          });
+
+          const audioInVK = await context.vk.upload.audioMessage({
+            source: audio,
+            peer_id: context.peerId
+          });
+
+          attachment.push(
+            `doc${audioInVK.ownerId}_${audioInVK.id}_${audioInVK.accessKey}`
+          );
+        } catch (e) {
+          console.error("Unable to upload audio for XID: ", xid, e);
+        }
 
         store.add(
           xid,
@@ -82,11 +99,7 @@ export default async function onUserJoin(
         await context.send({
           ...(await templateMessage("user_join", {
             user: `@id${user.id} (${user.first_name} ${user.last_name})`
-          })()),
-          attachment: [
-            `photo${imageInVK.ownerId}_${imageInVK.id}_${imageInVK.accessKey}`,
-            `doc${audioInVK.ownerId}_${audioInVK.id}_${audioInVK.accessKey}`
-          ]
+          })(attachment))
         });
       }
     }
