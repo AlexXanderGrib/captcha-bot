@@ -15,16 +15,20 @@ export const config = load("bot") as Promise<{
   host: string;
   port: number;
   path: string;
+  secret: string;
+  confirmation: string;
 }>;
 
 async function main(
   extensions: ((store: CaptchaStorage) => Promise<Middleware<MessageContext>>)[]
 ): Promise<void> {
-  const { token, v, id, host, port, path } = await config;
+  const { token, v, id, host, port, path, secret, confirmation } = await config;
   const vk = new VK({
     token,
     apiVersion: String(v),
-    pollingGroupId: id
+    pollingGroupId: id,
+    webhookConfirmation: confirmation,
+    webhookSecret: secret
   });
 
   vk.updates.on("message", async context => {
