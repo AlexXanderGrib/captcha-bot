@@ -21,7 +21,7 @@ export default async function onUserMessage(
         await context.send(
           await templateMessage("captcha_completed", {
             id: context.senderId
-          })
+          })()
         );
       } else {
         const messagesLeft = storage.decrementMessages(xid);
@@ -31,7 +31,7 @@ export default async function onUserMessage(
             await templateMessage("messages_left", {
               user: `@id${user.id} (${user.first_name} ${user.last_name})`,
               messages: messagesLeft
-            })
+            })()
           );
         } else if (messagesLeft < 1) {
           const {
@@ -45,7 +45,7 @@ export default async function onUserMessage(
             await templateMessage("captcha_fail", {
               user: `@id${user.id} (${user.first_name} ${user.last_name})`,
               admin: `https://vk.com/id${chatData.chat_settings.owner_id}`
-            })
+            })()
           );
 
           storage.clear(xid);
