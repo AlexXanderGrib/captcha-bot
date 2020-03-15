@@ -1,66 +1,77 @@
-export interface CaptchaStorage {
-  add(id: string, code: string, cb: () => void, delay: number): void;
-  decrementMessages(id: string): number;
-  solve(id: string, code: string): boolean;
-  clear(id: string): void;
-  has(is: string): boolean;
-}
+import getUTC from "ntp-client-promise";
+import { EventEmitter } from "events";
+import { genCode } from "./utils";
 
-class Storage implements CaptchaStorage {
-  private timeouts = new Map<string, NodeJS.Timeout>();
+const RECORD_LIFETIME = 6e4 * 2;
+const CODE_LENGTH = 6;
 
-  private codes = new Map<string, string>();
+type StoredUserData = {
+  code: string;
+  expiry: number;
+  messagesLeft: number;
+};
 
-  private messagesLeft = new Map<string, number>();
+const db = new Map<string, StoredUserData>();
+const io = new EventEmitter();
 
-  public add(id: string, code: string, cb: () => void, delay = 2000): void {
-    this.messagesLeft.set(id, 10);
-    this.timeouts.set(
-      id,
-      setTimeout(() => {
-        cb();
-        const t = this.timeouts.get(id);
+export default io;
 
-        if (t) clearTimeout(t);
+let TIMESTAMP = ((): number => {
+  setInterval(() => {
+    TIMESTAMP += 1000;
+  }, 1000);
 
-        this.clear(id);
-      }, delay)
-    );
-    this.codes.set(id, code);
-  }
+  getUTC("uk.pool.ntp.org")
+    .then(date => {
+      TIMESTAMP = date.getTime();
+    })
+    .then(() => io.emit("ready"));
 
-  public decrementMessages(id: string): number {
-    const base = this.messagesLeft.get(id) || 0;
-    const nextValue = base - 1;
+  return new Date(new Date().toUTCString()).getTime();
+})();
 
-    this.messagesLeft.set(id, nextValue);
-    return nextValue;
-  }
+io.on("user-join", (xid: string) => {
+  const code = genCode(CODE_LENGTH);
 
-  public solve(id: string, code: string): boolean {
-    if (
-      this.codes.has(id) &&
-      this.timeouts.has(id) &&
-      code === this.codes.get(id)
-    ) {
-      clearTimeout(this.timeouts.get(id) as NodeJS.Timeout); // because of line #30
-      this.clear(id);
-      return true;
+  db.set(xid, {
+    code,
+    expiry: TIMESTAMP + RECORD_LIFETIME,
+    messagesLeft: 10
+  });
+
+  io.emit("show-code", xid, code);
+});
+
+io.on("user-message", (xid: string, message: string) => {
+  if (db.has(xid)) {
+    const record = db.get(xid) as StoredUserData;
+
+    if (message.trim().substring(0, CODE_LENGTH) === record.code) {
+      io.emit("solved", xid);
+
+      db.delete(xid);
+    } else {
+      const messagesLeft = record.messagesLeft - 1;
+
+      if (messagesLeft > 0) {
+        io.emit("messages-left", xid, messagesLeft);
+
+        db.set(xid, { ...record, messagesLeft });
+      } else {
+        io.emit("failed", xid);
+        db.delete(xid);
+      }
     }
-    return false;
   }
+});
 
-  public clear(id: string): void {
-    this.timeouts.delete(id);
-    this.codes.delete(id);
-    this.messagesLeft.delete(id);
-  }
+const cleaner = setInterval(() => {
+  db.forEach((record, xid) => {
+    if (TIMESTAMP > record.expiry) {
+      io.emit("failed", xid);
+      db.delete(xid);
+    }
+  });
+}, 1000);
 
-  public has(id: string): boolean {
-    return (
-      this.codes.has(id) || this.timeouts.has(id) || this.messagesLeft.has(id)
-    );
-  }
-}
-
-export default new Storage();
+process.on("beforeExit", () => clearInterval(cleaner));

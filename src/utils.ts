@@ -1,11 +1,20 @@
-import { render } from "mustache";
 import Jimp from "jimp";
-import { writeFile } from "fs";
+import { promises as fs } from "fs";
 import { tmpdir } from "os";
 import { randomBytes } from "crypto";
 import { join } from "path";
-import { promisify } from "util";
-import { SimpleObject } from "./configLoader";
+
+const XID_DELIMITER = ":";
+
+export function uc2xid(userId: number, chatId: number): string {
+  return `${userId}${XID_DELIMITER}${chatId}`;
+}
+
+export function xid2uc(xid: string): [number, number] {
+  const [userId, chatId] = xid.split(XID_DELIMITER);
+
+  return [parseInt(userId, 10), parseInt(chatId, 10)];
+}
 
 export function genCode(length: number): string {
   function rand(): number {
@@ -23,37 +32,6 @@ export function genCode(length: number): string {
 
 export function stringifyComplexId(chatId: number, userId: number): string {
   return `${chatId}:${userId}`;
-}
-
-export type TemplateRenderer = (
-  templateId: string,
-  replacements?: SimpleObject
-) => (
-  additionalAttachments?: string[]
-) => { message: string; attachment: string[] };
-
-export function getTemplateRenderer(phrases: SimpleObject): TemplateRenderer {
-  return function renderTemplate(
-    templateId: string,
-    replacements: SimpleObject = {}
-  ) {
-    const message = phrases[`${templateId}_message`];
-    const attachments = phrases[`${templateId}_attachments`];
-
-    return function mergeAttachments(
-      attachment: string[] = []
-    ): { message: string; attachment: string[] } {
-      return {
-        attachment: (Array.isArray(attachments)
-          ? attachments.filter(a => typeof a === "string").concat(attachments)
-          : attachment) as string[],
-        message: render(
-          typeof message === "string" ? message : "",
-          replacements
-        )
-      };
-    };
-  } as TemplateRenderer;
 }
 
 export async function text2image(text: string): Promise<string> {
@@ -81,7 +59,19 @@ export async function text2image(text: string): Promise<string> {
     `captcha-bot-${randomBytes(16).toString("hex")}.jpg`
   );
 
-  await promisify(writeFile)(path, data);
+  await fs.writeFile(path, data);
 
   return path;
+}
+
+export function render(text: string, replacements: object): string {
+  return text.replace(/{{([A-z_0-9]+)}}/g, (_, prop: string) => {
+    const desc = Object.getOwnPropertyDescriptor(replacements, prop);
+
+    if (desc) {
+      return String(desc.value);
+    }
+
+    return String(undefined);
+  });
 }
