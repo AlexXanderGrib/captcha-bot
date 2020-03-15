@@ -48,15 +48,23 @@ function main(): void {
     }
   });
 
-  db.on("messages-left", async (xid: string, messages: number) => {
-    if (messages < 4) {
-      const [id, chat_id] = xid2uc(xid);
-
+  async function mention(id: number): Promise<string> {
+    try {
       const [{ first_name, last_name }] = await vk.api.users.get({
         user_ids: String(id)
       });
 
-      const user = `@id${id} (${first_name} ${last_name})`;
+      return `@id${id} (${first_name} ${last_name})`;
+    } catch (_) {
+      return `@id${id}`;
+    }
+  }
+
+  db.on("messages-left", async (xid: string, messages: number) => {
+    if (messages < 4) {
+      const [id, chat_id] = xid2uc(xid);
+
+      const user = await mention(id);
 
       await vk.api.messages.send({
         chat_id,
@@ -85,14 +93,10 @@ function main(): void {
       source: image
     });
 
-    const [{ first_name, last_name }] = await vk.api.users.get({
-      user_ids: String(id)
-    });
-
     await vk.api.messages.send({
       chat_id,
       message: render(phrases.userJoin.message, {
-        user: `@id${id} (${first_name} ${last_name})`
+        user: await mention(id)
       }),
       attachment: [
         ...phrases.userJoin.attachment,
@@ -113,13 +117,9 @@ function main(): void {
   });
 
   db.on("failed", async (xid: string) => {
-    const [user_id, chat_id] = xid2uc(xid);
+    const [id, chat_id] = xid2uc(xid);
 
-    const [{ first_name, last_name }] = await vk.api.users.get({
-      user_ids: String(user_id)
-    });
-
-    const user = `@id${user_id} (${first_name} ${last_name})`;
+    const user = await mention(id);
 
     try {
       const {
@@ -141,7 +141,7 @@ function main(): void {
 
       await vk.api.messages.removeChatUser({
         chat_id,
-        user_id
+        user_id: id
       });
     } catch (_) {
       await vk.api.messages.send({

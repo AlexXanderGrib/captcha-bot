@@ -59,5 +59,46 @@
     "@types/*",
     "nodemon.json",
     "tsconfig.json"
-  ]
+  ],
+  "eslintConfig": {
+    "env": {
+      "node": true,
+      "browser": false,
+      "es6": true
+    },
+    "parser": "@typescript-eslint/parser",
+    "parserOptions": {
+      "ecmaVersion": 2020,
+      "sourceType": "module"
+    },
+    "extends": [
+      "airbnb-base",
+      "plugin:prettier/recommended",
+      "prettier",
+      "plugin:@typescript-eslint/recommended"
+    ],
+    "plugins": [
+      "prettier",
+      "@typescript-eslint/eslint-plugin"
+    ],
+    "rules": {
+      "semi": "off",
+      "prettier/prettier": "warn",
+      "no-console": "off",
+      "@typescript-eslint/camelcase": "off",
+      "no-restricted-syntax": "off",
+      "no-await-in-loop": "off",
+      "no-continue": "off",
+      "import/no-unresolved": "off",
+      "import/extensions": "off",
+      "require-await": "error",
+      "radix": "error",
+      "prefer-promise-reject-errors": "error"
+    }
+  },
+  "prettier": {
+    "semi": true,
+    "tabWidth": 2,
+    "useTabs": false
+  }
 }
