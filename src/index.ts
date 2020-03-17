@@ -43,6 +43,42 @@ function main(): void {
       } else {
         const xid = uc2xid(context.senderId, context.chatId || 0);
 
+        if (context.text) {
+          const result = /!пропуск (\[id([0-9]+)\|.*\])/.exec(context.text);
+
+          if (result) {
+            try {
+              const {
+                items: [currentChat]
+              } = await vk.api.messages.getConversationsById({
+                peer_ids: context.peerId
+              });
+
+              const ownerId = currentChat?.chat_settings?.owner_id || 0;
+              const admins: number[] =
+                currentChat?.chat_settings?.admin_ids || [];
+
+              if ([ownerId, ...admins].includes(context.senderId)) {
+                const id = parseInt(result[2], 10) || 0;
+
+                if (id) {
+                  db.emit(
+                    "pass",
+                    uc2xid(id, context.chatId || 0),
+                    context.senderId
+                  );
+                }
+              } else {
+                throw new Error();
+              }
+            } catch (_e) {
+              await context.send(
+                `&#9888; Простите, @id${context.senderId}, но данная команда доступна только администратором беседы.`
+              );
+            }
+          }
+        }
+
         db.emit("user-message", xid, context.text || "");
       }
     }
@@ -59,6 +95,21 @@ function main(): void {
       return `@id${id}`;
     }
   }
+
+  db.on("allow-pass", async (xid: string, admin: number, reason?: string) => {
+    const [uid, cid] = xid2uc(xid);
+
+    let message = `Пользователь @id${uid} был допущен к беседе без прохождения каптчи\n\nМодератор: https://vk.com/id${admin}`;
+
+    if (reason) {
+      message += `\nПричина: ${reason}`;
+    }
+
+    await vk.api.messages.send({
+      chat_id: cid,
+      message
+    });
+  });
 
   db.on("messages-left", async (xid: string, messages: number) => {
     if (messages < 4) {
@@ -96,7 +147,8 @@ function main(): void {
     await vk.api.messages.send({
       chat_id,
       message: render(phrases.userJoin.message, {
-        user: await mention(id)
+        user: await mention(id),
+        id
       }),
       attachment: [
         ...phrases.userJoin.attachment,

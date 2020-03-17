@@ -30,10 +30,6 @@ export function genCode(length: number): string {
   return code;
 }
 
-export function stringifyComplexId(chatId: number, userId: number): string {
-  return `${chatId}:${userId}`;
-}
-
 export async function text2image(text: string): Promise<string> {
   const image = await new Jimp(512, 512, 0xffffffff);
   const font = await Jimp.loadFont(Jimp.FONT_SANS_128_BLACK);

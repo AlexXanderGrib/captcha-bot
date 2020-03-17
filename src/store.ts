@@ -1,9 +1,16 @@
 import getUTC from "ntp-client-promise";
 import { EventEmitter } from "events";
-import { genCode } from "./utils";
+import { promises as fs } from "fs";
+import { join } from "path";
+import { genCode, xid2uc } from "./utils";
+import { checkPass } from "./userpass";
+
+import prevSaved = require("../db/captchas.json");
 
 const RECORD_LIFETIME = 6e4 * 2;
 const CODE_LENGTH = 6;
+const DISK_THRESHOLD = 1e4;
+const DB_PATH = join(__dirname, "..", "db", "captchas.json");
 
 type StoredUserData = {
   code: string;
@@ -16,6 +23,24 @@ const io = new EventEmitter();
 
 export default io;
 
+function preload(): void {
+  Object.keys(prevSaved as object).forEach(key => {
+    const value = prevSaved[key];
+
+    if (
+      typeof value === "object" &&
+      "expiry" in value &&
+      typeof value.expiry === "number" &&
+      "code" in value &&
+      typeof value.code === "string" &&
+      "messagesLeft" in value &&
+      typeof value.messagesLeft === "number"
+    ) {
+      db.set(key, value as StoredUserData);
+    }
+  });
+}
+
 let TIMESTAMP = ((): number => {
   setInterval(() => {
     TIMESTAMP += 1000;
@@ -25,21 +50,35 @@ let TIMESTAMP = ((): number => {
     .then(date => {
       TIMESTAMP = date.getTime();
     })
+    .then(() => preload())
     .then(() => io.emit("ready"));
 
   return new Date(new Date().toUTCString()).getTime();
 })();
 
-io.on("user-join", (xid: string) => {
-  const code = genCode(CODE_LENGTH);
+io.on("user-join", async (xid: string) => {
+  const [uid] = xid2uc(xid);
 
-  db.set(xid, {
-    code,
-    expiry: TIMESTAMP + RECORD_LIFETIME,
-    messagesLeft: 10
-  });
+  const autopass = await checkPass(uid);
 
-  io.emit("show-code", xid, code);
+  if (autopass) {
+    io.emit(
+      "allow-pass",
+      xid,
+      uid,
+      "Пользователь подтверждён администрацией Captcha Bot"
+    );
+  } else {
+    const code = genCode(CODE_LENGTH);
+
+    db.set(xid, {
+      code,
+      expiry: TIMESTAMP + RECORD_LIFETIME,
+      messagesLeft: 10
+    });
+
+    io.emit("show-code", xid, code);
+  }
 });
 
 io.on("user-message", (xid: string, message: string) => {
@@ -65,6 +104,12 @@ io.on("user-message", (xid: string, message: string) => {
   }
 });
 
+io.on("pass", (xid: string, admin: number) => {
+  db.delete(xid);
+
+  io.emit("allow-pass", xid, admin);
+});
+
 const cleaner = setInterval(() => {
   db.forEach((record, xid) => {
     if (TIMESTAMP > record.expiry) {
@@ -74,4 +119,19 @@ const cleaner = setInterval(() => {
   });
 }, 1000);
 
-process.on("beforeExit", () => clearInterval(cleaner));
+async function save(): Promise<void> {
+  const obj = Object.fromEntries(db);
+
+  await fs.writeFile(DB_PATH, JSON.stringify(obj), { encoding: "utf8" });
+
+  io.emit("data-saved", Date.now());
+}
+
+const writer = setInterval(save, DISK_THRESHOLD);
+
+process.on("beforeExit", async () => {
+  await save();
+
+  clearInterval(cleaner);
+  clearInterval(writer);
+});
