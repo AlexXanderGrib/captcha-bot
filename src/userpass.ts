@@ -5,7 +5,7 @@ import { EOL } from "os";
 let loadTime = 0;
 const db = new Set<number>();
 
-const dbpath = join(__dirname, "..", "db", "upasses.csv");
+const dbpath = join(__dirname, "..", "db", "verified.csv");
 
 async function read(): Promise<void> {
   const data = await fs.readFile(dbpath, { encoding: "utf8" });
