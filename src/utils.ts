@@ -3,17 +3,24 @@ import { promises as fs } from "fs";
 import { tmpdir } from "os";
 import { randomBytes } from "crypto";
 import { join } from "path";
-
-const XID_DELIMITER = ":";
+import { serialize, deserialize } from "v8";
 
 export function uc2xid(userId: number, chatId: number): string {
-  return `${userId}${XID_DELIMITER}${chatId}`;
+  return serialize([userId, chatId]).toString("hex");
 }
 
 export function xid2uc(xid: string): [number, number] {
-  const [userId, chatId] = xid.split(XID_DELIMITER);
+  const result = deserialize(Buffer.from(xid, "hex"));
 
-  return [parseInt(userId, 10), parseInt(chatId, 10)];
+  if (
+    Array.isArray(result) &&
+    typeof result[0] === "number" &&
+    typeof result[1] === "number"
+  ) {
+    return [result[0], result[1]];
+  }
+
+  throw new Error("Failed to deserialize XID");
 }
 
 export function genCode(length: number): string {
