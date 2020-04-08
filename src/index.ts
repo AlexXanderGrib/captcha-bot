@@ -213,7 +213,6 @@ function main(): void {
         break;
       case "production":
         await vk.updates.startWebhook({
-          host: settings.host,
           port: settings.port,
           path: settings.path
         });
