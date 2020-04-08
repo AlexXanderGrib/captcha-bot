@@ -8,7 +8,7 @@
     "dev": "NODE_ENV=development nodemon",
     "test": "jest",
     "lint": "eslint src/**/*.ts",
-    "docker": "ts-node ./src/index.ts"
+    "docker": "NODE_ENV=production ts-node ./src/index.ts"
   },
   "repository": {
     "type": "git",
