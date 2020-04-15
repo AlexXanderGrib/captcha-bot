@@ -1,9 +1,8 @@
+/* eslint-disable global-require */
+/* eslint-disable @typescript-eslint/no-var-requires */
 import { Record, String, Tuple, Number, Contract } from "runtypes";
 import { serialize, deserialize } from "v8";
 import { join } from "path";
-
-import st = require("../config/bot.json");
-import ph = require("../config/phrases.json");
 
 export const CAPTCHA_CODE_LENGTH = 6;
 export const Positive = Number.withConstraint(n => n > 0);
@@ -77,8 +76,8 @@ export const FailedEvent = Record({
   xid: XID
 });
 
-export const phrases = ph;
-export const settings = st;
+export const phrases = require("../config/phrases.json");
+export const settings = require("../config/bot.json");
 
 export const DB_PATH = join(__dirname, "..", "db", "captcha.json");
 export const VF_PATH = join(__dirname, "..", "db", "verified.csv");

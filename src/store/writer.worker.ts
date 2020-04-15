@@ -5,9 +5,9 @@ import { DB_PATH } from "../contract";
 
 if (!parentPort) throw new Error("This file must be a worker");
 
-const p = parentPort; // This is an elder chinese hack
+// This is an elder chinese hack
 
-p.on("message", async obj => {
+parentPort.on("message", async obj => {
   const data = JSON.stringify(obj);
 
   await fs.writeFile(DB_PATH, data, { encoding: "utf8" });
