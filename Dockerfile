@@ -6,7 +6,7 @@ COPY package*.json ./
 RUN npm install --only=prod
 COPY . .
 
-RUN npm build
+RUN npm run build
 
 EXPOSE 3300
 
