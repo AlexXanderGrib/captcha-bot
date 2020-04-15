@@ -1,10 +1,80 @@
-import { VK } from "vk-io";
-import { text2speech } from "yandex-speech-promise";
+import { VK, MessageContext } from "vk-io";
+import { Static } from "runtypes";
+import {
+  settings,
+  phrases,
+  UserMessageEvent,
+  uc2xid,
+  UserJoinEvent,
+  xid2uc,
+  MessagesLeftEvent,
+  SolvedEvent,
+  ShowUserPassEvent,
+  FailedEvent,
+  ShowCodeEvent,
+  PassRegExp,
+  PassCommand
+} from "./contract";
 import db from "./store";
-import { render, uc2xid, xid2uc, text2image } from "./utils";
+import { render } from "./utils";
+import renderCode from "./captcha";
 
-import phrases = require("../config/phrases.json");
-import settings = require("../config/bot.json");
+async function MessagesListener(context: MessageContext): Promise<void> {
+  if (context.isChat) {
+    const text = context.text || "";
+
+    if (context.eventType === "chat_invite_user") {
+      const xid = uc2xid([
+        Number(context.eventMemberId) || 0,
+        context.chatId || 0
+      ]);
+
+      if (context.eventMemberId === -(context.$groupId || 0)) {
+        // if bot joined the conversation
+
+        await context.send(phrases.selfJoin);
+      } else if (Number(context.eventMemberId) > 0) {
+        // user joined the conversation
+
+        db.emit("user-join", { xid } as Static<typeof UserJoinEvent>);
+      }
+    } else {
+      const xid = uc2xid([context.senderId, context.chatId || 0]);
+      const pass = text.match(PassRegExp);
+
+      if (pass && pass[2]) {
+        const victim = parseInt(pass[2], 10);
+
+        try {
+          const {
+            items: [currentChat]
+          } = await context.vk.api.messages.getConversationsById({
+            peer_ids: context.peerId
+          });
+
+          const admins: number[] = Array.from(
+            currentChat?.chat_settings?.admin_ids || []
+          ).filter(item => typeof item === "number" && item > 0) as number[];
+
+          if (!admins.includes(context.senderId)) {
+            throw new Error();
+          }
+
+          db.emit("pass-user-request", {
+            xid: uc2xid([victim, context.chatId || 0]),
+            admin: context.senderId
+          });
+        } catch (e) {
+          await context.send(
+            `@id${context.senderId} (Вы) не являетесь администратором беседы!`
+          );
+        }
+      }
+
+      db.emit("user-message", { xid, text } as Static<typeof UserMessageEvent>);
+    }
+  }
+}
 
 function main(): void {
   let ready = false;
@@ -23,66 +93,7 @@ function main(): void {
     webhookSecret: settings.secret
   });
 
-  vk.updates.on("message", async context => {
-    if (context.isChat) {
-      if (context.eventType === "chat_invite_user") {
-        const xid = uc2xid(
-          Number(context.eventMemberId) || 0,
-          context.chatId || 0
-        );
-
-        if (context.eventMemberId === -(context.$groupId || 0)) {
-          // if bot joined the conversation
-
-          await context.send(phrases.selfJoin);
-        } else if (Number(context.eventMemberId) > 0) {
-          // user joined the conversation
-
-          db.emit("user-join", xid);
-        }
-      } else {
-        const xid = uc2xid(context.senderId, context.chatId || 0);
-
-        if (context.text) {
-          const result = /!пропуск (\[id([0-9]+)\|.*\])/.exec(context.text);
-
-          if (result) {
-            try {
-              const {
-                items: [currentChat]
-              } = await vk.api.messages.getConversationsById({
-                peer_ids: context.peerId
-              });
-
-              const ownerId = currentChat?.chat_settings?.owner_id || 0;
-              const admins: number[] =
-                currentChat?.chat_settings?.admin_ids || [];
-
-              if ([ownerId, ...admins].includes(context.senderId)) {
-                const id = parseInt(result[2], 10) || 0;
-
-                if (id) {
-                  db.emit(
-                    "pass",
-                    uc2xid(id, context.chatId || 0),
-                    context.senderId
-                  );
-                }
-              } else {
-                throw new Error();
-              }
-            } catch (_e) {
-              await context.send(
-                `&#9888; Простите, @id${context.senderId}, но данная команда доступна только администратором беседы.`
-              );
-            }
-          }
-        }
-
-        db.emit("user-message", xid, context.text || "");
-      }
-    }
-  });
+  vk.updates.on("message", MessagesListener);
 
   async function mention(id: number): Promise<string> {
     try {
@@ -96,22 +107,9 @@ function main(): void {
     }
   }
 
-  db.on("allow-pass", async (xid: string, admin: number, reason?: string) => {
-    const [uid, cid] = xid2uc(xid);
+  db.on("messages-left", async params => {
+    const { xid, left: messages } = MessagesLeftEvent.check(params);
 
-    let message = `Пользователь @id${uid} был допущен к беседе без прохождения каптчи\n\nМодератор: https://vk.com/id${admin}`;
-
-    if (reason) {
-      message += `\nПричина: ${reason}`;
-    }
-
-    await vk.api.messages.send({
-      chat_id: cid,
-      message
-    });
-  });
-
-  db.on("messages-left", async (xid: string, messages: number) => {
     if (messages < 4) {
       const [id, chat_id] = xid2uc(xid);
 
@@ -125,40 +123,8 @@ function main(): void {
     }
   });
 
-  db.on("show-code", async (xid: string, code: string) => {
-    const [id, chat_id] = xid2uc(xid);
-    const image = await text2image(code);
-    const audio = await text2speech(`Код: ${code.split("").join(" ")}`, {
-      auth: `Api-Key ${settings.yandexApiKey}`,
-      speed: 0.8,
-      voice: "zahar"
-    });
-
-    const audioMessage = await vk.upload.audioMessage({
-      peer_id: chat_id + 2e9,
-      source: audio
-    });
-
-    const photo = await vk.upload.messagePhoto({
-      peer_id: chat_id + 2e9,
-      source: image
-    });
-
-    await vk.api.messages.send({
-      chat_id,
-      message: render(phrases.userJoin.message, {
-        user: await mention(id),
-        id
-      }),
-      attachment: [
-        ...phrases.userJoin.attachment,
-        `photo${photo.ownerId}_${photo.id}_${photo.accessKey}`,
-        `doc${audioMessage.ownerId}_${audioMessage.id}_${audioMessage.accessKey}`
-      ].join(",")
-    });
-  });
-
-  db.on("solved", async (xid: string) => {
+  db.on("solved", async params => {
+    const { xid } = SolvedEvent.check(params);
     const [id, chat_id] = xid2uc(xid);
 
     await vk.api.messages.send({
@@ -168,7 +134,9 @@ function main(): void {
     });
   });
 
-  db.on("failed", async (xid: string) => {
+  db.on("failed", async params => {
+    const { xid } = FailedEvent.check(params);
+
     const [id, chat_id] = xid2uc(xid);
 
     const user = await mention(id);
@@ -204,6 +172,53 @@ function main(): void {
     }
   });
 
+  db.on("show-user-pass", async params => {
+    const { reason, xid } = ShowUserPassEvent.check(params);
+
+    const [uid, cid] = xid2uc(xid);
+
+    await vk.api.messages.send({
+      chat_id: cid,
+      message: `Пользователь @id${uid} был допущен к беседе без прохождения каптчи
+      
+Причина: ${reason}`
+    });
+  });
+
+  db.on("show-code", async params => {
+    const { code, xid } = ShowCodeEvent.check(params);
+    const [uid, cid] = xid2uc(xid);
+
+    const peer_id = cid + 2e9;
+
+    const [image, audio] = await renderCode(code);
+
+    const [photo, voice] = await Promise.all([
+      vk.upload.messagePhoto({
+        peer_id,
+        source: image
+      }),
+      vk.upload.audioMessage({
+        peer_id,
+        source: audio
+      })
+    ]);
+
+    await vk.api.messages.send({
+      chat_id: cid,
+      message: render(phrases.userJoin.message, {
+        user: await mention(uid),
+        id: uid,
+        command: PassCommand
+      }),
+      attachment: [
+        ...phrases.userJoin.attachment,
+        `photo${photo.ownerId}_${photo.id}_${photo.accessKey}`,
+        `doc${voice.ownerId}_${voice.id}_${voice.accessKey}`
+      ].join(",")
+    });
+  });
+
   db.on("ready", async () => {
     ready = true;
 
@@ -213,7 +228,6 @@ function main(): void {
         break;
       case "production":
         await vk.updates.startWebhook({
-          host: settings.host,
           port: settings.port,
           path: settings.path
         });
@@ -227,36 +241,3 @@ function main(): void {
 }
 
 export default main();
-//   // Initialization
-//   const {
-//     token,
-//     v,
-//     id,
-//     host,
-//     port,
-//     path,
-//     secret,
-//     confirmation,
-//     yak
-//   } = await config;
-//   const ph = await phrases;
-//   const templateMessage = await getTemplateRenderer(ph as SimpleObject);
-//   const [db, emitter] = await store();
-
-//   // Bot realization
-
-//   vk.updates.on("message", async context => {
-//     const xid = stringifyComplexId(context.chatId || 0, context.senderId);
-
-//     if (
-//       context.peerType === "chat" &&
-//       context.eventType === "chat_invite_user" &&
-//
-//     ) {
-//       await context.send(templateMessage("self_join")());
-//     }
-//   });
-
-// }
-
-// export default main();

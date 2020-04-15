@@ -1,43 +1,22 @@
 import Jimp from "jimp";
-import { promises as fs } from "fs";
-import { tmpdir } from "os";
-import { randomBytes } from "crypto";
-import { join } from "path";
-import { serialize, deserialize } from "v8";
+import { Static } from "runtypes";
+import { CAPTCHA_CODE_LENGTH, CaptchaCode } from "./contract";
 
-export function uc2xid(userId: number, chatId: number): string {
-  return serialize([userId, chatId]).toString("hex");
-}
+export type AllowPromise<T> = T | Promise<T>;
+export type AllowArray<T> = T | T[];
 
-export function xid2uc(xid: string): [number, number] {
-  const result = deserialize(Buffer.from(xid, "hex"));
-
-  if (
-    Array.isArray(result) &&
-    typeof result[0] === "number" &&
-    typeof result[1] === "number"
-  ) {
-    return [result[0], result[1]];
-  }
-
-  throw new Error("Failed to deserialize XID");
-}
-
-export function genCode(length: number): string {
+export function genCode(): Static<typeof CaptchaCode> {
   function rand(): number {
     return Math.round(-0.5 + Math.random() * 10);
   }
 
-  let code = "";
-
-  while (code.length < length) {
-    code += rand().toString();
-  }
-
-  return code;
+  return new Array(CAPTCHA_CODE_LENGTH)
+    .fill(0) // [0, 0, 0, 0, 0, 0] fulfill with zeros
+    .map(rand) // [4, 3, 5, 2, 7, 8] make its random
+    .join(""); // "456278" concat into string
 }
 
-export async function text2image(text: string): Promise<string> {
+export async function text2image(text: string): Promise<Buffer> {
   const image = await new Jimp(512, 512, 0xffffffff);
   const font = await Jimp.loadFont(Jimp.FONT_SANS_128_BLACK);
 
@@ -57,14 +36,8 @@ export async function text2image(text: string): Promise<string> {
   image.quality(80);
 
   const data = await image.getBufferAsync(Jimp.MIME_JPEG);
-  const path = join(
-    tmpdir(),
-    `captcha-bot-${randomBytes(16).toString("hex")}.jpg`
-  );
 
-  await fs.writeFile(path, data);
-
-  return path;
+  return data;
 }
 
 export function render(text: string, replacements: object): string {

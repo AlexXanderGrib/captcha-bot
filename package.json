@@ -7,7 +7,8 @@
     "start": "NODE_ENV=production nodemon",
     "dev": "NODE_ENV=development nodemon",
     "test": "jest",
-    "lint": "eslint ."
+    "lint": "eslint src/**/*.ts",
+    "docker": "NODE_ENV=production ts-node ./src/index.ts"
   },
   "repository": {
     "type": "git",
@@ -20,6 +21,7 @@
   },
   "homepage": "https://github.com/xxhax-team/captcha-bot#readme",
   "devDependencies": {
+    "@types/jest": "^25.2.1",
     "@types/node": "^13.7.7",
     "@typescript-eslint/eslint-plugin": "^2.21.0",
     "@typescript-eslint/parser": "^2.21.0",
@@ -29,14 +31,15 @@
     "eslint-plugin-import": "^2.20.0",
     "eslint-plugin-prettier": "^3.1.2",
     "husky": "^4.1.0",
+    "jest": "^25.3.0",
     "lint-staged": "^10.0.1",
-    "prettier": "^1.19.1"
+    "prettier": "^1.19.1",
+    "ts-jest": "^25.3.1"
   },
   "dependencies": {
     "jimp": "^0.9.3",
-    "middleware-io": "^2.5.0",
     "nodemon": "^2.0.2",
-    "ntp-client-promise": "^1.0.1",
+    "runtypes": "^4.2.0",
     "ts-node": "^8.6.2",
     "typescript": "^3.8.3",
     "vk-io": "^4.0.0-rc.30",
@@ -64,7 +67,8 @@
     "env": {
       "node": true,
       "browser": false,
-      "es6": true
+      "es6": true,
+      "jest": true
     },
     "parser": "@typescript-eslint/parser",
     "parserOptions": {
@@ -93,7 +97,9 @@
       "import/extensions": "off",
       "require-await": "error",
       "radix": "error",
-      "prefer-promise-reject-errors": "error"
+      "prefer-promise-reject-errors": "error",
+      "@typescript-eslint/no-explicit-any": "off",
+      "@typescript-eslint/explicit-function-return-type": "off"
     }
   },
   "prettier": {
