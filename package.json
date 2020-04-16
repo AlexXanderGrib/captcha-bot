@@ -22,7 +22,6 @@
   },
   "homepage": "https://github.com/xxhax-team/captcha-bot#readme",
   "devDependencies": {
-    "@types/node": "^13.7.7",
     "@types/jest": "^25.2.1",
     "@typescript-eslint/eslint-plugin": "^2.21.0",
     "@typescript-eslint/parser": "^2.21.0",
@@ -39,6 +38,7 @@
     "ts-node": "^8.6.2"
   },
   "dependencies": {
+    "@types/node": "^13.7.7",
     "jimp": "^0.9.3",
     "nodemon": "^2.0.2",
     "runtypes": "^4.2.0",
