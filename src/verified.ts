@@ -24,14 +24,14 @@ export async function read() {
 }
 
 async function write() {
-  if (!loaded) await load();
-
   const data = Array.from(state).join(EOL);
 
   await fs.writeFile(VF_PATH, data, { encoding: "utf8" });
 }
 
 export async function add(id: number) {
+  if (!loaded) await load();
+
   state.add(id);
 
   await write();
@@ -40,6 +40,8 @@ export async function add(id: number) {
 }
 
 export async function remove(id: number) {
+  if (!loaded) await load();
+
   state.delete(id);
 
   await write();

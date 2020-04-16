@@ -29,11 +29,7 @@ export const uc2xid = Contract(UC, XID).enforce(uc => {
 export const xid2uc = Contract(XID, UC).enforce(xid => {
   const uc = deserialize(Buffer.from(xid, "hex"));
 
-  if (UC.validate(uc)) {
-    return uc;
-  }
-
-  throw new Error("XID is invalid");
+  return UC.check(uc);
 });
 
 export const UserDataStructure = Record({

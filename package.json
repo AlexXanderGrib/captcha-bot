@@ -6,7 +6,7 @@
   "scripts": {
     "start": "NODE_ENV=production nodemon ./dist/index.js",
     "dev": "NODE_ENV=development nodemon ./src/index.ts",
-    "test": "jest",
+    "test": "jest --verbose --collect-coverage",
     "lint": "eslint src/**/*.ts",
     "docker": "NODE_ENV=production node ./dist/index.js",
     "build": "tsc --project ./tsconfig.json"
@@ -30,6 +30,7 @@
     "eslint-config-prettier": "^6.9.0",
     "eslint-plugin-import": "^2.20.0",
     "eslint-plugin-prettier": "^3.1.2",
+    "file-type": "^14.1.4",
     "husky": "^4.1.0",
     "jest": "^25.3.0",
     "lint-staged": "^10.0.1",
