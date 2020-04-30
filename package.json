@@ -1,6 +1,6 @@
 {
   "name": "captcha-bot",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Bot defending chats in VK using text on images",
   "main": "index.js",
   "scripts": {
@@ -30,7 +30,6 @@
     "eslint-config-prettier": "^6.9.0",
     "eslint-plugin-import": "^2.20.0",
     "eslint-plugin-prettier": "^3.1.2",
-    "file-type": "^14.1.4",
     "husky": "^4.1.0",
     "jest": "^25.3.0",
     "lint-staged": "^10.0.1",
@@ -45,6 +44,7 @@
     "runtypes": "^4.2.0",
     "typescript": "^3.8.3",
     "vk-io": "^4.0.0-rc.30",
+    "file-type": "^14.1.4",
     "yandex-speech-promise": "latest"
   },
   "husky": {
