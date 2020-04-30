@@ -1,23 +1,23 @@
-import { VK, MessageContext } from "vk-io";
 import { Static } from "runtypes";
+import { MessageContext, VK } from "vk-io";
+import renderCode from "./captcha";
 import {
-  settings,
+  FailedEvent,
+  MessagesLeftEvent,
+  PassCommand,
+  PassRegExp,
   phrases,
-  UserMessageEvent,
+  settings,
+  ShowCodeEvent,
+  ShowUserPassEvent,
+  SolvedEvent,
   uc2xid,
   UserJoinEvent,
-  xid2uc,
-  MessagesLeftEvent,
-  SolvedEvent,
-  ShowUserPassEvent,
-  FailedEvent,
-  ShowCodeEvent,
-  PassRegExp,
-  PassCommand
+  UserMessageEvent,
+  xid2uc
 } from "./contract";
 import db from "./store";
 import { render } from "./utils";
-import renderCode from "./captcha";
 
 async function MessagesListener(context: MessageContext): Promise<void> {
   if (context.isChat) {
@@ -52,11 +52,14 @@ async function MessagesListener(context: MessageContext): Promise<void> {
             peer_ids: context.peerId
           });
 
-          const admins: number[] = Array.from(
+          const moderators: number[] = Array.from(
             currentChat?.chat_settings?.admin_ids || []
           ).filter(item => typeof item === "number" && item > 0) as number[];
 
-          if (!admins.includes(context.senderId)) {
+          const owner: number = currentChat?.chat_settings?.owner_id || 0;
+          const admins = new Set([...moderators, owner]);
+
+          if (!admins.has(context.senderId)) {
             throw new Error();
           }
 
