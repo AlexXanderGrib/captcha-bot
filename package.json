@@ -1,6 +1,6 @@
 {
   "name": "captcha-bot",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Bot defending chats in VK using text on images",
   "main": "index.js",
   "scripts": {
