@@ -1,24 +1,24 @@
-import { Static, Dictionary } from "runtypes";
 import { EventEmitter } from "events";
-import { Worker } from "worker_threads";
 import { promises as fs } from "fs";
+import { Dictionary, Static, String as Str } from "runtypes";
+import { Worker } from "worker_threads";
 import {
-  UserDataStructure,
-  XID,
+  DataBasePath,
   FailedEvent,
-  UserJoinEvent,
-  xid2uc,
-  ShowCodeEvent,
-  ShowUserPassEvent,
-  UserMessageEvent,
-  SolvedEvent,
   MessagesLeftEvent,
   PassUserRequestEvent,
   ReadyEvent,
-  DB_PATH
+  ShowCodeEvent,
+  ShowUserPassEvent,
+  SolvedEvent,
+  UserDataStructure,
+  UserJoinEvent,
+  UserMessageEvent,
+  XID,
+  xid2uc
 } from "../contract";
-import { has as isVerified } from "../verified";
 import { genCode } from "../utils";
+import { has as isVerified } from "../verified";
 
 export const USER_MESSAGES_BEFORE_KICK = 10;
 export const DISK_THROTTLE = 30e3; // 30 second
@@ -33,12 +33,13 @@ const io = new EventEmitter();
 const writer = new Worker(require.resolve("./writer.worker"));
 
 async function preload() {
-  const data = await fs.readFile(DB_PATH, { encoding: "utf8" });
+  const data = await fs
+    .readFile(DataBasePath, { encoding: "utf8" })
+    .catch(() => "{}");
 
   const obj = JSON.parse(data);
 
-  const isValidDict = Dictionary(UserDataStructure, "string").validate(obj)
-    .success;
+  const isValidDict = Dictionary(UserDataStructure, Str).validate(obj).success;
 
   if (isValidDict) {
     Object.keys(obj)
@@ -124,8 +125,25 @@ function save() {
   return new Promise((resolve, reject) => {
     const obj = Object.fromEntries(db);
 
-    writer.once("message", resolve);
-    writer.once("error", reject);
+    function onMessage(data) {
+      resolve(data);
+      // eslint-disable-next-line no-use-before-define
+      cleanUp();
+    }
+
+    function onError(error) {
+      reject(error);
+      // eslint-disable-next-line no-use-before-define
+      cleanUp();
+    }
+
+    function cleanUp() {
+      writer.off("error", onError);
+      writer.off("message", onMessage);
+    }
+
+    writer.once("message", onMessage);
+    writer.once("error", onError);
 
     writer.postMessage(obj);
   });

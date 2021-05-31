@@ -22,7 +22,7 @@ export default function renderCode(code: string): Promise<[Buffer, Buffer]> {
           await renderer.terminate();
         }
 
-        renderer.removeListener("message", handler);
+        renderer.off("message", handler);
 
         resolve([Buffer.from(image), Buffer.from(audio)]);
       }

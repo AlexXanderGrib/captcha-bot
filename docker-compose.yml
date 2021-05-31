@@ -1,0 +1,9 @@
+version: '3.1'
+services:
+  captcha_bot:
+    container_name: captchabot
+    build: ./
+    restart: always
+    volumes:
+      - ./db:/app/db
+      - ./config:/app/config:ro

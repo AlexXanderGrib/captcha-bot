@@ -1,5 +1,5 @@
 import { Static } from "runtypes";
-import { MessageContext, VK } from "vk-io";
+import { API, MessageContext, VK } from "vk-io";
 import renderCode from "./captcha";
 import {
   FailedEvent,
@@ -16,14 +16,23 @@ import {
   UserMessageEvent,
   xid2uc
 } from "./contract";
+import MessagingService from "./ms";
 import db from "./store";
 import { render } from "./utils";
 
-async function MessagesListener(context: MessageContext): Promise<void> {
+async function MessagesListener(
+  context: MessageContext,
+  api: API
+): Promise<void> {
   if (context.isChat) {
     const text = context.text || "";
 
-    if (context.eventType === "chat_invite_user") {
+    if (
+      context.eventType === "chat_invite_user" ||
+      context.eventType === "chat_invite_user_by_link"
+    ) {
+      if (context.eventMemberId && context.eventMemberId < 0) return;
+
       const xid = uc2xid([
         Number(context.eventMemberId) || 0,
         context.chatId || 0
@@ -39,6 +48,7 @@ async function MessagesListener(context: MessageContext): Promise<void> {
         db.emit("user-join", { xid } as Static<typeof UserJoinEvent>);
       }
     } else {
+      if (context.senderId < 0) return;
       const xid = uc2xid([context.senderId, context.chatId || 0]);
       const pass = text.match(PassRegExp);
 
@@ -48,7 +58,7 @@ async function MessagesListener(context: MessageContext): Promise<void> {
         try {
           const {
             items: [currentChat]
-          } = await context.vk.api.messages.getConversationsById({
+          } = await api.messages.getConversationsById({
             peer_ids: context.peerId
           });
 
@@ -96,7 +106,9 @@ function main(): void {
     webhookSecret: settings.secret
   });
 
-  vk.updates.on("message", MessagesListener);
+  vk.updates.on("message", context => MessagesListener(context, vk.api));
+
+  const ms = new MessagingService(vk.api);
 
   async function mention(id: number): Promise<string> {
     try {
@@ -118,10 +130,10 @@ function main(): void {
 
       const user = await mention(id);
 
-      await vk.api.messages.send({
+      await ms.send({
         chat_id,
-        message: render(phrases.messagesLimit.message, { user, messages }),
-        attachment: phrases.messagesLimit.attachment.join(",")
+        ...phrases.messagesLimit,
+        message: render(phrases.messagesLimit.message, { user, messages })
       });
     }
   });
@@ -130,10 +142,10 @@ function main(): void {
     const { xid } = SolvedEvent.check(params);
     const [id, chat_id] = xid2uc(xid);
 
-    await vk.api.messages.send({
+    await ms.send({
       chat_id,
-      message: render(phrases.solved.message, { id }),
-      attachment: phrases.solved.attachment.join(",")
+      ...phrases.solved,
+      message: render(phrases.solved.message, { id })
     });
   });
 
@@ -153,13 +165,13 @@ function main(): void {
 
       const admin = conversation?.chat_settings?.owner_id || 0;
 
-      await vk.api.messages.send({
+      await ms.send({
         chat_id,
+        ...phrases.failed,
         message: render(phrases.failed.message, {
           user,
           admin
-        }),
-        attachment: phrases.failed.attachment.join(",")
+        })
       });
 
       await vk.api.messages.removeChatUser({
@@ -167,10 +179,10 @@ function main(): void {
         user_id: id
       });
     } catch (_) {
-      await vk.api.messages.send({
+      await ms.send({
         chat_id,
-        message: render(phrases.noAdmin.message, { user }),
-        attachment: phrases.noAdmin.attachments.join(",")
+        ...phrases.noAdmin,
+        message: render(phrases.noAdmin.message, { user })
       });
     }
   });
@@ -180,7 +192,7 @@ function main(): void {
 
     const [uid, cid] = xid2uc(xid);
 
-    await vk.api.messages.send({
+    await ms.send({
       chat_id: cid,
       message: `Пользователь @id${uid} был допущен к беседе без прохождения каптчи
       
@@ -199,15 +211,15 @@ function main(): void {
     const [photo, voice] = await Promise.all([
       vk.upload.messagePhoto({
         peer_id,
-        source: image
+        source: { value: image }
       }),
       vk.upload.audioMessage({
         peer_id,
-        source: audio
+        source: { value: audio }
       })
     ]);
 
-    await vk.api.messages.send({
+    await ms.send({
       chat_id: cid,
       message: render(phrases.userJoin.message, {
         user: await mention(uid),
@@ -215,7 +227,7 @@ function main(): void {
         command: PassCommand
       }),
       attachment: [
-        ...phrases.userJoin.attachment,
+        ...(phrases.userJoin?.attachment || []),
         `photo${photo.ownerId}_${photo.id}_${photo.accessKey}`,
         `doc${voice.ownerId}_${voice.id}_${voice.accessKey}`
       ].join(",")
@@ -224,14 +236,15 @@ function main(): void {
 
   db.on("ready", async () => {
     ready = true;
+    const mode = process.env.MODE || "LP";
 
-    switch (process.env.NODE_ENV) {
-      case "development":
+    switch (mode) {
+      case "LP":
         await vk.updates.startPolling();
         break;
-      case "production":
+      case "CP":
         await vk.updates.startWebhook({
-          port: settings.port,
+          port: parseInt(process.env.PORT || "") || settings.port,
           path: settings.path
         });
         break;
@@ -239,7 +252,11 @@ function main(): void {
         throw new Error("Environment not selected");
     }
 
-    console.log("🦄 Bot started! (in %s mode)", process.env.NODE_ENV);
+    console.log(
+      "🦄 Bot started! (in %s env mode=%s)",
+      process.env.NODE_ENV,
+      mode
+    );
   });
 }
 

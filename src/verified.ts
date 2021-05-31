@@ -1,12 +1,12 @@
 import { promises as fs } from "fs";
 import { EOL } from "os";
-import { VF_PATH } from "./contract";
+import { VerifiedListPath } from "./contract";
 
 let loaded = false;
 const state = new Set<number>();
 
 async function load() {
-  const data = await fs.readFile(VF_PATH, "utf8");
+  const data = await fs.readFile(VerifiedListPath, "utf8").catch(() => "");
 
   data
     .split(EOL)
@@ -17,7 +17,7 @@ async function load() {
   loaded = true;
 }
 
-export async function read() {
+export async function read(): Promise<Set<number>> {
   if (!loaded) await load();
 
   return state;
@@ -26,10 +26,10 @@ export async function read() {
 async function write() {
   const data = Array.from(state).join(EOL);
 
-  await fs.writeFile(VF_PATH, data, { encoding: "utf8" });
+  await fs.writeFile(VerifiedListPath, data, { encoding: "utf8" });
 }
 
-export async function add(id: number) {
+export async function add(id: number): Promise<Set<number>> {
   if (!loaded) await load();
 
   state.add(id);
@@ -39,7 +39,7 @@ export async function add(id: number) {
   return state;
 }
 
-export async function remove(id: number) {
+export async function remove(id: number): Promise<Set<number>> {
   if (!loaded) await load();
 
   state.delete(id);
@@ -49,7 +49,7 @@ export async function remove(id: number) {
   return state;
 }
 
-export async function has(id: number) {
+export async function has(id: number): Promise<boolean> {
   if (!loaded) await load();
 
   return state.has(id);

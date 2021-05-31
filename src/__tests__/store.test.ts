@@ -1,24 +1,24 @@
-import { Static } from "runtypes";
 import { writeFileSync } from "fs";
-import db, { USER_MESSAGES_BEFORE_KICK } from "../store";
+import { Static } from "runtypes";
 import {
-  uc2xid,
-  ShowCodeEvent,
-  UserJoinEvent,
-  UserMessageEvent,
   CaptchaCode,
-  MessagesLeftEvent,
+  DataBasePath,
   FailedEvent,
-  SolvedEvent,
+  MessagesLeftEvent,
+  PassUserRequestEvent,
+  ShowCodeEvent,
   ShowUserPassEvent,
-  DB_PATH,
-  PassUserRequestEvent
+  SolvedEvent,
+  uc2xid,
+  UserJoinEvent,
+  UserMessageEvent
 } from "../contract";
+import db, { USER_MESSAGES_BEFORE_KICK } from "../store";
 import { read as getVerifiedUsers } from "../verified";
 
 jest.setTimeout(30000);
 
-writeFileSync(DB_PATH, "{}", { encoding: "utf8" });
+writeFileSync(DataBasePath, "{}", { encoding: "utf8" });
 
 describe("Database", () => {
   test("Must be ready in 5s", async () => {
@@ -50,7 +50,7 @@ describe("Database", () => {
     const xid = uc2xid([2, 1]); // User: #2, Chat: #1
     const notACode = "";
 
-    const left = new Promise((resolve: Function) => {
+    const left = new Promise((resolve: CallableFunction) => {
       db.on("messages-left", params => {
         const { left: m, xid: x } = MessagesLeftEvent.check(params);
 

@@ -1,7 +1,6 @@
-import { parentPort, MessagePort } from "worker_threads";
 import { promises as fs } from "fs";
-
-import { DB_PATH } from "../contract";
+import { MessagePort, parentPort } from "worker_threads";
+import { DataBasePath } from "../contract";
 
 if (!parentPort) throw new Error("This file must be a worker");
 
@@ -10,7 +9,7 @@ if (!parentPort) throw new Error("This file must be a worker");
 parentPort.on("message", async obj => {
   const data = JSON.stringify(obj);
 
-  await fs.writeFile(DB_PATH, data, { encoding: "utf8" });
+  await fs.writeFile(DataBasePath, data, { encoding: "utf8" });
 
   const now = new Date(new Date().toUTCString());
 

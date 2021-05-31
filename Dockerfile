@@ -1,13 +1,28 @@
-FROM node:12
-WORKDIR /usr/src/app
+FROM node:16 as builder
+RUN npm i -g npm
 
 COPY package*.json ./
+RUN npm ci
 
-RUN npm install --only=prod
-COPY . .
-
+COPY ./src ./src
+COPY ./tsconfig.json ./tsconfig.json
 RUN npm run build
 
-EXPOSE 3300
+FROM node:16
 
-CMD ["npm", "run", "docker"]
+ENV PORT=3300
+ENV MODE=LP
+ENV NODE_ENV=production
+
+VOLUME [ "/app/config" ]
+VOLUME [ "/app/db" ]
+WORKDIR /app
+RUN npm i -g npm
+
+COPY --from=builder package*.json ./
+RUN npm ci --only=prod
+
+COPY --from=builder ./dist ./dist
+
+EXPOSE ${PORT}
+CMD ["npm", "start"]

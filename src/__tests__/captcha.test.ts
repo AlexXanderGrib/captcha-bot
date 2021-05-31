@@ -1,7 +1,7 @@
 import { speech2text } from "yandex-speech-promise";
 import renderCode from "../captcha";
+import { CaptchaCode, settings } from "../contract";
 import { genCode } from "../utils";
-import { settings, CaptchaCode } from "../contract";
 
 jest.setTimeout(30000);
 
@@ -15,12 +15,12 @@ describe("Captcha Code", () => {
   test("Is sounds correct", async () => {
     const [, audio] = await renderCode(code);
 
-    const r = await speech2text(audio, {
+    const response = await speech2text(audio, {
       auth: `Api-Key ${settings.yandexApiKey}`,
       lang: "ru-RU",
       topic: "general"
     });
 
-    expect(r).toMatch(`код ${code.split("").join(" ")}`);
+    expect(response).toMatch(`Код ${code.split("").join(" ")}`);
   });
 });

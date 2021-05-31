@@ -1,6 +1,6 @@
 import Jimp from "jimp";
 import { Static } from "runtypes";
-import { CAPTCHA_CODE_LENGTH, CaptchaCode } from "./contract";
+import { CaptchaCode, CAPTCHA_CODE_LENGTH } from "./contract";
 
 export type AllowPromise<T> = T | Promise<T>;
 export type AllowArray<T> = T | T[];
@@ -17,7 +17,7 @@ export function genCode(): Static<typeof CaptchaCode> {
 }
 
 export async function text2image(text: string): Promise<Buffer> {
-  const image = await new Jimp(512, 512, 0xffffffff);
+  const image = new Jimp(512, 512, 0xffffffff);
   const font = await Jimp.loadFont(Jimp.FONT_SANS_128_BLACK);
 
   image.print(
@@ -40,7 +40,10 @@ export async function text2image(text: string): Promise<Buffer> {
   return data;
 }
 
-export function render(text: string, replacements: object): string {
+export function render(
+  text: string,
+  replacements: Record<string, any>
+): string {
   return text.replace(/{{([A-z_0-9]+)}}/g, (_, prop: string) => {
     const desc = Object.getOwnPropertyDescriptor(replacements, prop);
 

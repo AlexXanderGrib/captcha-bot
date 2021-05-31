@@ -1,8 +1,10 @@
 /* eslint-disable global-require */
 /* eslint-disable @typescript-eslint/no-var-requires */
-import { Record, String, Tuple, Number, Contract } from "runtypes";
-import { serialize, deserialize } from "v8";
-import { join } from "path";
+import { readFileSync } from "fs";
+import { resolve } from "path";
+import { Contract, Number, Record, String, Tuple } from "runtypes";
+import { deserialize, serialize } from "v8";
+import { parse } from "yaml";
 
 export const CAPTCHA_CODE_LENGTH = 6;
 export const Positive = Number.withConstraint(n => n > 0);
@@ -72,11 +74,13 @@ export const FailedEvent = Record({
   xid: XID
 });
 
-export const phrases = require("../config/phrases.json");
+const phrasesPath = resolve(__dirname, "../config/phrases.yml");
+
+export const phrases = parse(readFileSync(phrasesPath, "utf-8"));
 export const settings = require("../config/bot.json");
 
-export const DB_PATH = join(__dirname, "..", "db", "captcha.json");
-export const VF_PATH = join(__dirname, "..", "db", "verified.csv");
+export const DataBasePath = resolve(__dirname, "..", "db", "captcha.json");
+export const VerifiedListPath = resolve(__dirname, "..", "db", "verified.csv");
 
 export const PassCommand = "!пропустить";
 export const PassRegExp = /^!пропустить (\[id([0-9]+)\|.*\])$/;
