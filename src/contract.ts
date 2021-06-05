@@ -3,7 +3,6 @@
 import { readFileSync } from "fs";
 import { resolve } from "path";
 import { Contract, Number, Record, String, Tuple } from "runtypes";
-import { deserialize, serialize } from "v8";
 import { parse } from "yaml";
 
 export const CAPTCHA_CODE_LENGTH = 6;
@@ -12,7 +11,7 @@ export const Positive = Number.withConstraint(n => n > 0);
 export const UC = Tuple(Positive, Positive);
 export const XID = String.withConstraint(str => {
   try {
-    UC.validate(deserialize(Buffer.from(str, "hex")));
+    UC.validate(JSON.parse(str));
 
     return true;
   } catch (e) {
@@ -25,11 +24,11 @@ export const CaptchaCode = String.withConstraint(
 );
 
 export const uc2xid = Contract(UC, XID).enforce(uc => {
-  return serialize(uc).toString("hex");
+  return JSON.stringify(uc);
 });
 
 export const xid2uc = Contract(XID, UC).enforce(xid => {
-  const uc = deserialize(Buffer.from(xid, "hex"));
+  const uc = JSON.parse(xid);
 
   return UC.check(uc);
 });

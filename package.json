@@ -10,7 +10,7 @@
     "lint": "eslint src/**/*.ts",
     "build": "tsc --project ./tsconfig.json",
     "pkg:version": "node -e 'process.stdout.write(require(\"./package.json\").version)'",
-    "docker:build": "docker build -t captcha_bot:`npm run `"
+    "docker:build": "docker build -t captcha_bot:`npm run pkg:version`"
   },
   "repository": {
     "type": "git",
