@@ -32,7 +32,7 @@ jobs:
           PHRASES: ${{secrets.PHRASES}}
 
       - name: Lint
-        run: npm lint
+        run: npm run lint
       
       - name: Test
         run: npm test
