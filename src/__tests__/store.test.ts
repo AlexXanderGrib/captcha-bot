@@ -13,7 +13,7 @@ import {
   UserJoinEvent,
   UserMessageEvent
 } from "../contract";
-import db, { USER_MESSAGES_BEFORE_KICK } from "../store";
+import db, { cleanup, USER_MESSAGES_BEFORE_KICK } from "../store";
 import { read as getVerifiedUsers } from "../verified";
 
 jest.setTimeout(30000);
@@ -21,14 +21,15 @@ jest.setTimeout(30000);
 writeFileSync(DataBasePath, "{}", { encoding: "utf8" });
 
 describe("Database", () => {
+  afterAll(() => cleanup());
+
   test("Must be ready in 5s", async () => {
-    const awaiter = await new Promise((resolve, reject) => {
+    const value = await new Promise(resolve => {
       db.on("ready", () => resolve(true));
-      setTimeout(reject, 5000, false);
     });
 
-    expect(awaiter).toBe(true);
-  });
+    expect(value).toBe(true);
+  }, 5000);
 
   test("Must ask show the code", async () => {
     const xid = uc2xid([1, 1]); // User: #1, Chat: #1

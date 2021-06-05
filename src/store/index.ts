@@ -128,16 +128,16 @@ function save() {
     function onMessage(data) {
       resolve(data);
       // eslint-disable-next-line no-use-before-define
-      cleanUp();
+      cleanupSave();
     }
 
     function onError(error) {
       reject(error);
       // eslint-disable-next-line no-use-before-define
-      cleanUp();
+      cleanupSave();
     }
 
-    function cleanUp() {
+    function cleanupSave() {
       writer.off("error", onError);
       writer.off("message", onMessage);
     }
@@ -152,12 +152,14 @@ function save() {
 const timer = setInterval(tick, TICK);
 const saver = setInterval(save, DISK_THROTTLE);
 
-process.on("beforeExit", async () => {
+export const cleanup = async (): Promise<void> => {
   await save();
   await writer.terminate();
 
   clearInterval(timer);
   clearInterval(saver);
-});
+};
+
+process.on("beforeExit", cleanup);
 
 export default io;
