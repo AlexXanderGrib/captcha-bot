@@ -22,6 +22,15 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Setup config
+        run: |
+          mkdir config
+          echo "$CONFIG" > config/bot.json
+          echo "$PHRASES" > config/phrases.yml
+        env:
+          CONFIG: ${{secrets.CONFIG}}
+          PHRASES: ${{secrets.PHRASES}}
+
       - name: Lint
         run: npm lint
       
