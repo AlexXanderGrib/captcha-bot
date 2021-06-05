@@ -3,8 +3,11 @@ on:
     branches: [master]
   workflow_dispatch:
 
+name: Releasing
+
 jobs:
   update_image:
+    name: Update image release
     runs-on: ubuntu-latest
     steps:
       - name: Clone Repo

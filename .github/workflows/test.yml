@@ -3,8 +3,11 @@ on:
     branches: [master]
   workflow_dispatch:
 
+name: Testing
+
 jobs:
-  update_image:
+  test:
+    name: Test
     runs-on: ubuntu-latest
     steps:
       - name: Clone Repo
@@ -17,7 +20,7 @@ jobs:
           registry-url: "https://registry.npmjs.org"
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Lint
         run: npm lint
